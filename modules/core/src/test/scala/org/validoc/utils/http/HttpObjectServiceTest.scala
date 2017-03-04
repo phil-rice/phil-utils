@@ -25,6 +25,12 @@ class HttpObjectServiceTest extends UtilsWithLoggingSpec {
     override def apply(req: Req): ServiceRequest = ServiceRequest(Get, Uri(req))
   }
 
+  implicit object FromServiceRequestForHttpReq extends FromServiceRequest[HttpReq] {
+//    override def apply(req: Req):Req ServiceRequest = ServiceRequest(Get, Uri(req))
+    override def apply(v1: ServiceRequest): HttpReq = ;lk;lk
+  }
+
+
   implicit def convert(s: ServiceRequest): HttpReq = HttpReq(s.uri.asUriString)
 
   def setup(serviceResponse: => ServiceResponse)(fn: (HttpObjectService[Future, HttpReq, Req, HttpRes, Res], Service[Future, HttpReq, HttpRes], ResponseProcessor[Req, Res], ServiceResponse) => Unit) = {

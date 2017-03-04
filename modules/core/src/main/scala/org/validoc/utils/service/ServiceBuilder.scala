@@ -26,13 +26,13 @@ trait WrappedTypes[M[_]] {
 trait ParserServiceBuilder[M[_], HttpReq, HttpRes] extends WrappedTypes[M] {
   protected implicit def async: Async[M]
 
-  def parse[Req: ToServiceRequest, Res: ParserFinder](implicit toServiceResponse: ToServiceResponse[HttpRes], toHttpReq: ServiceRequest => HttpReq): Modify[HttpReq, HttpRes, Req, Res] =
+  def parse[Req: ToServiceRequest, Res: ParserFinder](implicit toServiceResponse: ToServiceResponse[HttpRes], fromServiceRequest: FromServiceRequest[HttpReq]): Modify[HttpReq, HttpRes, Req, Res] =
     service => new HttpObjectService[M, HttpReq, Req, HttpRes, Res]("someName", service, ResponseProcessor.parsed(implicitly[ParserFinder[Res]]))
 
-  def parseOption[Req: ToServiceRequest, Res: ParserFinder](implicit toServiceResponse: ToServiceResponse[HttpRes], toHttpReq: ServiceRequest => HttpReq): Modify[HttpReq, HttpRes, Req, Option[Res]] =
+  def parseOption[Req: ToServiceRequest, Res: ParserFinder](implicit toServiceResponse: ToServiceResponse[HttpRes],fromServiceRequest: FromServiceRequest[HttpReq]): Modify[HttpReq, HttpRes, Req, Option[Res]] =
     service => new HttpObjectService[M, HttpReq, Req, HttpRes, Option[Res]]("someName", service, ResponseProcessor.optionalParsed[Req, Res](implicitly[ParserFinder[Res]]))
 
-  def parseDefaultIfNotFound[Req: ToServiceRequest, Res: ParserFinder](default: Res)(implicit toServiceResponse: ToServiceResponse[HttpRes], toHttpReq: ServiceRequest => HttpReq): Modify[HttpReq, HttpRes, Req, Option[Res]] =
+  def parseDefaultIfNotFound[Req: ToServiceRequest, Res: ParserFinder](default: Res)(implicit toServiceResponse: ToServiceResponse[HttpRes], fromServiceRequest: FromServiceRequest[HttpReq]): Modify[HttpReq, HttpRes, Req, Option[Res]] =
     service => new HttpObjectService[M, HttpReq, Req, HttpRes, Option[Res]]("someName", service, ResponseProcessor.optionalParsed[Req, Res](implicitly[ParserFinder[Res]]))
 }
 

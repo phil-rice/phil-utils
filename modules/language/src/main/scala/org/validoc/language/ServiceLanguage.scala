@@ -79,11 +79,11 @@ trait IHttpSetup[Tag[M[_], _, _], M[_], HttpReq, HttpRes] extends IService[Tag, 
 
   def httpCallout[Req: ClassTag : ToServiceRequest, Res: ParserFinder : ClassTag](t: Tag[M, HttpReq, HttpRes])
                                                                                  (implicit toServiceResponse: ToServiceResponse[HttpRes],
-                                                                                  toHttpReq: ServiceRequest => HttpReq): Tag[M, Req, Res]
+                                                                                  toServiceRequest: ToServiceRequest[HttpRes]): Tag[M, Req, Res]
 
   def getCachedProfiledObject[Req: ClassTag : ToServiceRequest : CachableKey, Res: ParserFinder : ClassTag : CachableResult]
   (metricPrefix: String, timeToStale: Duration, timeToDead: Duration, maxSize: Int, rawService: Tag[M, HttpReq, HttpRes])
-  (implicit toHttpReq: (ServiceRequest) => HttpReq, nanoTimeService: NanoTimeService, toHttpResponse: ToServiceResponse[HttpRes], putMetrics: PutMetrics, succeeded: Succeeded[HttpRes]): Tag[M, Req, Res] = {
+  (implicit  toServiceRequest: ToServiceRequest[HttpRes], nanoTimeService: NanoTimeService, toHttpResponse: ToServiceResponse[HttpRes], putMetrics: PutMetrics, succeeded: Succeeded[HttpRes]): Tag[M, Req, Res] = {
     (metrics[HttpReq, HttpRes](metricPrefix) _ ~> httpCallout[Req, Res] _ ~> profiled ~> cached(timeToStale, timeToDead, maxSize) _) (rawService)
   }
 
@@ -114,7 +114,7 @@ object ServiceInterpreters {
     override def httpCallout[Req: ClassTag : ToServiceRequest,
     Res: ParserFinder : ClassTag](t: StringServiceTag[M, HttpReq, HttpRes])
                                  (implicit toServiceResponse: ToServiceResponse[HttpRes],
-                                  toHttpReq: (ServiceRequest) => HttpReq): StringServiceTag[M, Req, Res] =
+                                  toServiceRequest: ToServiceRequest[HttpRes]): StringServiceTag[M, Req, Res] =
       StringServiceTag(s"Http(${implicitly[ClassTag[Req]].runtimeClass.getSimpleName},${implicitly[ClassTag[Res]].runtimeClass.getSimpleName}) ~~> ${t.t}")
 
 
@@ -159,7 +159,7 @@ object ServiceInterpreters {
     def makeProfile[Req, Res](delegate: Req => M[Res])(implicit timeService: NanoTimeService) =
       new ProfilingService[M, Req, Res]("someName", delegate, timeService)
 
-    def makeHhttpCallout[Req: ClassTag : ToServiceRequest, Res: ParserFinder : ClassTag](t: AsyncService[HttpReq, HttpRes])(implicit toServiceResponse: ToServiceResponse[HttpRes], toHttpReq: (ServiceRequest) => HttpReq): AsyncService[Req, Res] =
+    def makeHhttpCallout[Req: ClassTag : ToServiceRequest, Res: ParserFinder : ClassTag](t: AsyncService[HttpReq, HttpRes])(implicit toServiceResponse: ToServiceResponse[HttpRes], toServiceRequest: ToServiceRequest[HttpRes]): AsyncService[Req, Res] =
       new HttpObjectService[M, HttpReq, Req, HttpRes, Res]("someName", t, ResponseProcessor.parsed(implicitly[ParserFinder[Res]]))
 
   }
@@ -178,7 +178,7 @@ object ServiceInterpreters {
     override def profiled[Req, Res](delegate: Req => M[Res])(implicit timeService: NanoTimeService): AsyncService[Req, Res] =
       new ProfilingService[M, Req, Res]("someName", delegate, timeService)
 
-    override def httpCallout[Req: ClassTag : ToServiceRequest, Res: ParserFinder : ClassTag](t: AsyncService[HttpReq, HttpRes])(implicit toServiceResponse: ToServiceResponse[HttpRes], toHttpReq: (ServiceRequest) => HttpReq): AsyncService[Req, Res] =
+    override def httpCallout[Req: ClassTag : ToServiceRequest, Res: ParserFinder : ClassTag](t: AsyncService[HttpReq, HttpRes])(implicit toServiceResponse: ToServiceResponse[HttpRes] ,toServiceRequest: ToServiceRequest[HttpRes]): AsyncService[Req, Res] =
       new HttpObjectService[M, HttpReq, Req, HttpRes, Res]("someName", t, ResponseProcessor.parsed(implicitly[ParserFinder[Res]]))
 
     override def enrich[Req, Res, ResE, ReqC, ResC](parent: AsyncService[Req, Res], child: AsyncService[ReqC, ResC])(implicit enricher: Enricher[ResE, Res, ResC], children: HasChildren[Res, ReqC]): AsyncService[Req, ResE] =
@@ -221,7 +221,7 @@ object ServiceInterpreters {
       delegate.withService(newService).copy(profileServices = newService :: delegate.profileServices)
     }
 
-    override def httpCallout[Req: ClassTag : ToServiceRequest, Res: ParserFinder : ClassTag](t: ServiceData[M, HttpReq, HttpRes])(implicit toServiceResponse: ToServiceResponse[HttpRes], toHttpReq: (ServiceRequest) => HttpReq): ServiceData[M, Req, Res] = {
+    override def httpCallout[Req: ClassTag : ToServiceRequest, Res: ParserFinder : ClassTag](t: ServiceData[M, HttpReq, HttpRes])(implicit toServiceResponse: ToServiceResponse[HttpRes], toServiceRequest: ToServiceRequest[HttpRes]): ServiceData[M, Req, Res] = {
       val newService = makeHhttpCallout[Req, Res](t.service)
       t.withService[Req, Res](newService)
     }

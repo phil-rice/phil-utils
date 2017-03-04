@@ -1,5 +1,6 @@
 package org.validoc.utils.http
 
+import org.validoc.utils.service.ServerContext
 import org.validoc.utils.success._
 
 import scala.util.{Failure, Success, Try}
@@ -22,4 +23,12 @@ case class ServiceResponse(status: Status, body: Body, contentType: ContentType)
 
 trait ToServiceResponse[HttpRes] extends (HttpRes => ServiceResponse)
 
+object ToServiceResponse {
+  implicit def toServiceResponseForServerContext[HttpRes](implicit serverContext: ServerContext[_, HttpRes]) = serverContext.toServiceRequest
+}
+
 trait FromServiceResponse[HttpRes] extends (ServiceResponse => HttpRes)
+
+object FromServiceResponse {
+  implicit def fromServiceResponseForServerContext[HttpRes](implicit serverContext: ServerContext[_, HttpRes]) = serverContext.fromServiceRequest
+}
