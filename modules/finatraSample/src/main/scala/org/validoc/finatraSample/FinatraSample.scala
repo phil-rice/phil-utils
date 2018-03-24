@@ -9,13 +9,13 @@ import com.twitter.util.{Future, FuturePool}
 import org.validoc.finatra._
 import org.validoc.sample.domain._
 import org.validoc.sample.{JsonBundle, PromotionServiceNames, PromotionSetup}
-import org.validoc.tagless.TaglessLanguageLanguageForKleislis
+import org.validoc.tagless.{Tagless, TaglessLanguageLanguageForKleislis}
 import org.validoc.utils.cache._
 import org.validoc.utils.http._
 import org.validoc.utils.logging.{AbstractLogRequestAndResult, LogRequestAndResult, PrintlnLoggingAdapter}
 import org.validoc.utils.map.MaxMapSizeStrategy
 import org.validoc.utils.metrics.PrintlnPutMetrics
-
+import Failer._
 
 class FinatraPromotionSetup(implicit futurePool: FuturePool) extends Controller with SampleJsonsForCompilation {
   implicit val monad = new AsyncForTwitterFuture
@@ -30,16 +30,17 @@ class FinatraPromotionSetup(implicit futurePool: FuturePool) extends Controller 
   }
   implicit val cacheFactory = new CachingServiceFactory[Future](new DurationStaleCacheStategy(100000000l, 10000000000l), new MaxMapSizeStrategy(1000, 100))
 
-  val interpreter = new TaglessLanguageLanguageForKleislis[Future, Throwable]
+  val root = new Tagless[Future, Throwable]{}
+  val language = new root.Kleisli
 
   implicit val jsonBundle: JsonBundle = JsonBundle()
   implicit val executors = Executors.newFixedThreadPool(10)
 
   import org.validoc.utils.http.Failer.failerForThrowable
 
-  private val language = interpreter.NonFunctionalLanguageService()
+
   //  private val debugLanguage = new DebugEachObjectifyEndpoint(language)
-  val setup = new PromotionSetup[interpreter.Kleisli, Future, Throwable](language)
+  val setup = new PromotionSetup[root.K, Future, Throwable](language)
 
   import FinatraImplicits._
 

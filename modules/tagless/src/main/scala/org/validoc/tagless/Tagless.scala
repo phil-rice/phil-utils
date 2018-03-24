@@ -12,6 +12,7 @@ import org.validoc.utils.retry.{NeedsRetry, RetryConfig}
 import scala.language.higherKinds
 import scala.reflect.ClassTag
 
+trait Tagless[M[_], Fail] extends TaglessRoot[M] with TaglessLanguageLanguageForKleislis[M, Fail]
 
 trait TaglessLanguage[Wrapper[_, _], M[_]] extends MergeLanguage[Wrapper] with EnrichLanguage[Wrapper] {
   def as[Wrapper2[_, _]](implicit ev: Wrapper[_, _] <:< Wrapper2[_, _]): TaglessLanguage[Wrapper2, M] = this.asInstanceOf[TaglessLanguage[Wrapper2, M]]

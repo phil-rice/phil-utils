@@ -3,7 +3,7 @@ package org.validoc.tagless
 import org.validoc.utils.aggregate.{Enricher, HasChildren}
 import org.validoc.utils.cache.{CachableKey, ShouldCacheResult, ShouldUseCache}
 import org.validoc.utils.endpoint.MatchesServiceRequest
-import org.validoc.utils.functions.{Monad, MonadWithException}
+import org.validoc.utils.functions.{Liftable, Monad, MonadWithException}
 import org.validoc.utils.http._
 import org.validoc.utils.logging.{DetailedLogging, SummaryLogging}
 import org.validoc.utils.metrics.ReportData
@@ -24,13 +24,13 @@ trait Profiled {
   def allChildren: Seq[Profiled]
 }
 
-class Profile2[M[_] : MonadWithException] {
+trait Profile2[M[_]] {
   type Kleisli[Req, Res] = Req => M[Res]
 
   //TODO Need to add children to this so that we can do an HTML dump of it.
   // But this looks like it will work!
   //So this wraps every node in out tree, and we should be able to see the web page with the profiles of everything!
-  case class ProfilingWrapper[Req: ClassTag, Res: ClassTag](name: String, description: String, kleisli: Req => M[Res], children: ProfilingWrapper[_, _]*)(implicit nanoTimeService: NanoTimeService) extends PartialFunction[Req, M[Res]] with Kleisli[Req, Res] with Profiled {
+  case class ProfilingWrapper[Req: ClassTag, Res: ClassTag](name: String, description: String, kleisli: Req => M[Res], children: ProfilingWrapper[_, _]*)(implicit monadWithException: MonadWithException[M], nanoTimeService: NanoTimeService) extends PartialFunction[Req, M[Res]] with Kleisli[Req, Res] with Profiled {
     val tryProfileData = new TryProfileData
     val profiledKleisli = ProfileKleisli(tryProfileData)(kleisli)
 
@@ -51,7 +51,7 @@ class Profile2[M[_] : MonadWithException] {
 
   import org.validoc.utils.language.Language._
 
-  def endpointForProfiler[Req, Res](name: String, interpreter: TaglessLanguage[ProfilingWrapper, M], profilingWrapper: ProfilingWrapper[Req, Res]) =
+  def endpointForProfiler[Req, Res](name: String, interpreter: TaglessLanguage[ProfilingWrapper, M], profilingWrapper: ProfilingWrapper[Req, Res])(implicit monadWithException: MonadWithException[M]) =
     interpreter.endpoint[ServiceRequest, ServiceResponse](name, MatchesServiceRequest.fixedPath(Get))(
       ProfilingWrapper("endpointForProfiler", name, { serviceRequest: ServiceRequest =>
         val indentAndString = profilingWrapper.indents(pf => (s"${pf.name} ${pf.description}", pf.tryProfileData.toShortString))
@@ -60,7 +60,7 @@ class Profile2[M[_] : MonadWithException] {
         ServiceResponse(result).liftM[M]
       }))
 
-  def Language(interpreter: TaglessLanguage[Kleisli, M]) = new TransformTaglessLanguage[Kleisli, ProfilingWrapper, M](new WrapperTransformer[Kleisli, ProfilingWrapper, M] {
+  def Language(interpreter: TaglessLanguage[Kleisli, M])(implicit monadWithException: MonadWithException[M]) = new TransformTaglessLanguage[Kleisli, ProfilingWrapper, M](new WrapperTransformer[Kleisli, ProfilingWrapper, M] {
     override def apply[Req: ClassTag, Res: ClassTag](name: String, description: String, fn: TaglessLanguage[Kleisli, M] => Kleisli[Req, Res], children: ProfilingWrapper[_, _]*): ProfilingWrapper[Req, Res] =
       ProfilingWrapper(name, description, fn(interpreter), children: _*)
 
@@ -69,7 +69,7 @@ class Profile2[M[_] : MonadWithException] {
   def makeSystemAndProfileEndpoint[X](interpreter: TaglessLanguage[Kleisli, M],
                                       name: String,
                                       maker: TaglessLanguage[ProfilingWrapper, M] => X,
-                                      endPoints: X => ProfilingWrapper[ServiceRequest, Option[ServiceResponse]]): (X, ProfilingWrapper[ServiceRequest, Option[ServiceResponse]]) = {
+                                      endPoints: X => ProfilingWrapper[ServiceRequest, Option[ServiceResponse]])(implicit monadWithException: MonadWithException[M]): (X, ProfilingWrapper[ServiceRequest, Option[ServiceResponse]]) = {
     val profiledAllLanguage: TaglessLanguage[ProfilingWrapper, M] = Language(interpreter)
     val result: X = maker(profiledAllLanguage)
     (result, endpointForProfiler(name, profiledAllLanguage, endPoints(result)))

@@ -6,7 +6,7 @@ import java.util.concurrent.Executors
 import org.validoc.sample._
 import org.validoc.sample.domain.SampleJsonsForCompilation
 import org.validoc.simpleServer.{EndpointHandler, SimpleHttpServer}
-import org.validoc.tagless.{TaglessInterpreterForToString, TaglessLanguageLanguageForKleislis, _}
+import org.validoc.tagless.{TaglessLanguageLanguageForKleislis, _}
 import org.validoc.utils.cache.{CachingServiceFactory, DurationStaleCacheStategy}
 import org.validoc.utils.functions.AsyncForScalaFuture._
 import org.validoc.utils.functions.MonadCanFail
@@ -15,12 +15,10 @@ import org.validoc.utils.local.ExecutionContextWithLocal
 import org.validoc.utils.logging.{AbstractLogRequestAndResult, LogRequestAndResult, PrintlnLoggingAdapter}
 import org.validoc.utils.map.NoMapSizeStrategy
 import org.validoc.utils.metrics.PrintlnPutMetrics
-import org.validoc.utils.profiling.{DontProfile, ProfileAs, ProfileAsFail, ProfileAsSuccess}
 import org.validoc.utils.strings.IndentAnd
 
 import scala.concurrent.{ExecutionContext, Future}
 import scala.language.higherKinds
-import scala.util.{Failure, Success, Try}
 
 class AllProducers[Wrapper[_, _], M[_], Fail](language: TaglessLanguage[Wrapper, M])(implicit
                                                                                      monadCanFail: MonadCanFail[M, Fail],
@@ -65,12 +63,13 @@ object AllProducers extends App with SampleJsonsForCompilation {
   //TODO It would be nice to make this nicer!
 
   def microservice: ServiceRequest => Future[Option[ServiceResponse]] = {
-    val interpreter = new TaglessLanguageLanguageForKleislis[Future, Throwable]
-    val kleisliLanguage: interpreter.NonFunctionalLanguageService = interpreter.NonFunctionalLanguageService()
-    val profile2 = new Profile2[Future]
+    val root = new Tagless[Future, Throwable] {}
+    val forString = new root.ForToString
+    val kleisliLanguage = new root.Kleisli()
+    val profile2 = new Profile2[Future]{}
     val profiledAllLanguage = profile2.Language(kleisliLanguage)
 
-    val htmlEndpoint = TaglessInterpreterForToString.systemHtmlEndpoint("/html", profiledAllLanguage)(new AllProducers(_).allEndpoints())
+    val htmlEndpoint = forString.systemHtmlEndpoint("/html", profiledAllLanguage)(new AllProducers(_).allEndpoints())
 
     val (allProducers, profileEndpoint) = profile2.makeSystemAndProfileEndpoint(kleisliLanguage, "/profiles", new AllProducers(_),
       { allProducers: AllProducers[profile2.ProfilingWrapper, Future, _] => allProducers.allEndpoints() })

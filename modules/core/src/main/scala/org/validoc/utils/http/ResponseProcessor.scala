@@ -30,7 +30,6 @@ trait Failer[Fail] extends ResponseParserFailer[Fail] {
 
 object Failer {
 
-
   implicit def failerForThrowable = new Failer[Throwable] {
     override def notFound[Req](req: Req, response: ServiceResponse) = new NotFoundException(req, response)
     override def unexpected[Req](req: Req, response: ServiceResponse) = new UnexpectedStatusCodeException(req, response)

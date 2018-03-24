@@ -1,7 +1,7 @@
 package org.validoc.sample
 
 import org.validoc.sample.domain._
-import org.validoc.tagless.{ProfileEachEndpointLanguage, TaglessInterpreterForToString, TaglessLanguage}
+import org.validoc.tagless.{ProfileEachEndpointLanguage, TaglessLanguage, TaglessRoot}
 import org.validoc.utils.functions.MonadCanFail
 import org.validoc.utils.http._
 import org.validoc.utils.json.{FromJson, ToJson}
@@ -25,9 +25,9 @@ case class JsonBundle(implicit
                       val fromJsonForProduction: FromJson[Production])
 
 class PromotionSetup[Wrapper[_, _], M[_], Fail](interpreter: TaglessLanguage[Wrapper, M])(implicit
-                                                                                                monadCanFail: MonadCanFail[M, Fail],
-                                                                                                failer: Failer[Fail],
-                                                                                                jsonBundle: JsonBundle
+                                                                                          monadCanFail: MonadCanFail[M, Fail],
+                                                                                          failer: Failer[Fail],
+                                                                                          jsonBundle: JsonBundle
 ) extends PromotionServiceNames {
 
   import interpreter._
@@ -56,15 +56,16 @@ class PromotionSetup[Wrapper[_, _], M[_], Fail](interpreter: TaglessLanguage[Wra
 }
 
 object PromotionSetup extends App with SampleJsonsForCompilation {
-  implicit val language: TaglessInterpreterForToString = new TaglessInterpreterForToString
+  val root = new TaglessRoot[Future] {}
+  import root._
 
-  import TaglessInterpreterForToString._
+  implicit val language = new root.ForToString
 
   implicit val jsonBundle: JsonBundle = JsonBundle()
 
   import org.validoc.utils.functions.AsyncForScalaFuture._
   import ImplicitsForTest._
 
-  val setup = new PromotionSetup[StringHolder, Future, Throwable](new ProfileEachEndpointLanguage(language.forToString))
+  val setup = new PromotionSetup[StringHolder, Future, Throwable](new ProfileEachEndpointLanguage(language))
   println(setup.microservice.invertIndent)
 }
