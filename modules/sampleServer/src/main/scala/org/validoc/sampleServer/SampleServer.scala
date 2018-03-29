@@ -1,48 +1,62 @@
 package org.validoc.sampleServer
 
-import java.util.ResourceBundle
-import java.util.concurrent.Executors
-
+import org.validoc.sample.PromotionSetup
 import org.validoc.sample.domain.SampleJsonsForCompilation
-import org.validoc.sample.{JsonBundle, PromotionSetup}
 import org.validoc.simpleServer.{EndpointHandler, SimpleHttpServer}
-import org.validoc.tagless.{Tagless, TaglessLanguageLanguageForKleislis}
-import org.validoc.utils.cache.{CachingServiceFactory, DurationStaleCacheStategy}
-import org.validoc.utils.functions.AsyncForScalaFuture.ImplicitsForTest._
-import org.validoc.utils.functions.AsyncForScalaFuture._
+import org.validoc.tagless.{MakeService, Tagless, TaglessLanguage}
+import org.validoc.utils.functions.{AsyncForScalaFuture, MonadCanFail, MonadCanFailWithException}
 import org.validoc.utils.http._
-import org.validoc.utils.logging.{AbstractLogRequestAndResult, LogRequestAndResult, PrintlnLoggingAdapter}
-import org.validoc.utils.map.NoMapSizeStrategy
-import org.validoc.utils.metrics.PrintlnPutMetrics
-import Failer._
+
 import scala.concurrent.Future
+import scala.language.higherKinds
+
 
 object SampleServer extends App with SampleJsonsForCompilation {
+//
+//  implicit val httpFactory = new HttpFactory[Future, ServiceRequest, ServiceResponse] {
+//    override def apply(v1: ServiceName) = { req => Future.successful(ServiceResponse(Status(200), Body(s"response; ${req.body.map(_.s).getOrElse("")}"), ContentType("text/html"))) }
+//  }
+//  implicit val loggingAdapter = PrintlnLoggingAdapter
+//  implicit val resourceBundle = ResourceBundle.getBundle("messages")
+//  implicit val putMetrics = PrintlnPutMetrics
+//  implicit val logRequestAndResult: LogRequestAndResult[Throwable] = new AbstractLogRequestAndResult[Throwable] {
+//    override protected def format(messagePrefix: String, messagePostFix: String)(strings: String*) = messagePostFix + "." + messagePostFix + ":" + strings.mkString(",")
+//  }
+//  implicit val cacheFactory = new CachingServiceFactory[Future](DurationStaleCacheStategy(10000000000L, 10000000000000L), NoMapSizeStrategy)
+//
+//  val root = new Tagless[Future, Throwable] {}
+//  val interpreter = new root.Kleisli()
+//
+//  implicit val jsonBundle: JsonBundle = JsonBundle()
+//
+//  implicit val executors = Executors.newFixedThreadPool(10)
+//
+//  import org.validoc.utils.http.Failer.failerForThrowable
+//
+//  //  private val debugLanguage = new DebugEachObjectifyEndpoint(language)
+//  val setup = new PromotionSetup[root.K, Future, Throwable](interpreter)
+//
+//  //  println("Dumping")
+//  //  println(debugLanguage.dump)
 
-  implicit val httpFactory = new HttpFactory[Future, ServiceRequest, ServiceResponse] {
-    override def apply(v1: ServiceName) = { req => Future.successful(ServiceResponse(Status(200), Body(s"response; ${req.body.map(_.s).getOrElse("")}"), ContentType("text/html"))) }
+  println("Sample Server")
+
+  val allNeededThings = new AllNeededThings
+
+  import allNeededThings._
+
+
+  def makeService: MakeService[Future] = new MakeService[Future] {
+    override def apply[Wrapper[_, _]](language: TaglessLanguage[Wrapper, Future]): Wrapper[ServiceRequest, Option[ServiceResponse]] =
+      new PromotionSetup[Wrapper, Future, Throwable](language).homePageEndPoint
   }
-  implicit val loggingAdapter = PrintlnLoggingAdapter
-  implicit val resourceBundle = ResourceBundle.getBundle("messages")
-  implicit val putMetrics = PrintlnPutMetrics
-  implicit val logRequestAndResult: LogRequestAndResult[Throwable] = new AbstractLogRequestAndResult[Throwable] {
-    override protected def format(messagePrefix: String, messagePostFix: String)(strings: String*) = messagePostFix + "." + messagePostFix + ":" + strings.mkString(",")
-  }
-  implicit val cacheFactory = new CachingServiceFactory[Future](DurationStaleCacheStategy(10000000000L, 10000000000000L), NoMapSizeStrategy)
 
-  val root = new Tagless[Future, Throwable] {}
-  val interpreter = new root.Kleisli
+  val root = new Tagless[Future, Throwable]
 
-  implicit val jsonBundle: JsonBundle = JsonBundle()
+  val service = root.withProfileAndHtmlPage(makeService)
 
-  implicit val executors = Executors.newFixedThreadPool(10)
+  new SimpleHttpServer(9000, new EndpointHandler[Future, Throwable](service)).start()
 
-  import org.validoc.utils.http.Failer.failerForThrowable
 
-  //  private val debugLanguage = new DebugEachObjectifyEndpoint(language)
-  val setup = new PromotionSetup[root.K, Future, Throwable](interpreter)
-
-  //  println("Dumping")
-  //  println(debugLanguage.dump)
-  new SimpleHttpServer(9000, new EndpointHandler[Future, Throwable](setup.microservice)).start()
+//  new SimpleHttpServer(9000, new EndpointHandler[Future, Throwable](setup.microservice)).start()
 }

@@ -1,7 +1,7 @@
 package org.validoc.sample
 
 import org.validoc.sample.domain._
-import org.validoc.tagless.{ProfileEachEndpointLanguage, TaglessLanguage, TaglessRoot}
+import org.validoc.tagless.{ProfileEachEndpointLanguage, TaglessForString, TaglessLanguage, TaglessRoot}
 import org.validoc.utils.functions.MonadCanFail
 import org.validoc.utils.http._
 import org.validoc.utils.json.{FromJson, ToJson}
@@ -50,13 +50,13 @@ class PromotionSetup[Wrapper[_, _], M[_], Fail](interpreter: TaglessLanguage[Wra
   val homePage = (merge(enrichedPromotion) and enrichedMostPopular into[HomePageQuery, HomePage] ((hpq, ep, emp) => HomePage(emp, ep)))
 
   val mostPopularEndPoint = enrichedMostPopular |+| logging("homepage") |+| endpoint[MostPopularQuery, EnrichedMostPopular]("/mostpopular", fixedPath(Get))
-  val homePageEndPoint = homePage |+| logging("homepage") |+| endpoint[HomePageQuery, HomePage]("/", fixedPath(Get))
+  val homePageEndPoint: Wrapper[ServiceRequest, Option[ServiceResponse]] = homePage |+| logging("homepage") |+| endpoint[HomePageQuery, HomePage]("/", fixedPath(Get))
   val microservice = chain(mostPopularEndPoint, homePageEndPoint)
 
 }
 
 object PromotionSetup extends App with SampleJsonsForCompilation {
-  val root = new TaglessRoot[Future] {}
+  val root = new TaglessForString[Future] {}
   import root._
 
   implicit val language = new root.ForToString

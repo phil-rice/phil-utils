@@ -1,4 +1,4 @@
-# This project is for experimenting.
+# This project is for producing microservices using functional programming techniques
 
 There are a few things I'm trying to do in a 'serious' application.  This library is 'common things': Metrics / Profiling / ServeWhileStaleWithADeadTimeCutOff_Caching / Accessing other microservices
 without actually tying down 'what Http library do I use', 'What parsing library do I use', or even 'What Aync strategy 

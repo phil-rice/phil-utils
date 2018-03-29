@@ -10,23 +10,10 @@ import org.validoc.utils.metrics.PutMetrics
 import org.validoc.utils.time.NanoTimeService
 
 import scala.language.{higherKinds, implicitConversions}
+import org.validoc.utils.language.Language._
 
-//object TaglessLanguageLanguageForKleislis {
-//  def apply[M[_], Fail](implicit
-//                        async: Async[M],
-//                        monad: MonadCanFailWithException[M, Fail],
-//                        httpFactory: HttpFactory[M, ServiceRequest, ServiceResponse],
-//                        logReqAndResult: LogRequestAndResult[Fail],
-//                        timeService: NanoTimeService,
-//                        putMetrics: PutMetrics,
-//                        cacheFactory: CacheFactory[M],
-//                        failer: Failer[Fail],
-//                        responseParserFailer: ResponseParserFailer[Fail],
-//                        detailsLoggingForSR: DetailedLogging[ServiceResponse]) = new TaglessLanguageLanguageForKleislis[M, Fail]().NonFunctionalLanguageService()
-//}
+trait TaglessKleislis[M[_], Fail] extends TaglessRoot[M]{
 
-trait TaglessLanguageLanguageForKleislis[M[_], Fail] {
-  type K[Req, Res] = Req => M[Res]
 
   case class Kleisli(implicit
                      protected val async: Async[M],
@@ -39,6 +26,10 @@ trait TaglessLanguageLanguageForKleislis[M[_], Fail] {
                      protected val failer: Failer[Fail],
                      protected val responseParserFailer: ResponseParserFailer[Fail],
                      protected val detailsLoggingForSR: DetailedLogging[ServiceResponse]) extends
-    TaglessLanguage[K, M] with MicroserviceBuilder[M, Fail]
+    TaglessLanguage[K, M] with MicroserviceBuilder[M, Fail] {
+    override def extraEndpoints(wrapper: K[ServiceResponse, Option[ServiceResponse]]): K[ServiceRequest, Option[ServiceResponse]] = {
+      serviceRequest => Option.empty[ServiceResponse].liftM
+    }
+  }
 
 }

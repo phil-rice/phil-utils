@@ -80,7 +80,7 @@ class TaglessSpec extends UtilsSpec with HttpObjectFixture {
 
 
   behavior of "Tagless with toString Interpreter"
-  implicit val root = new TaglessRoot[Future] {}
+  implicit val root = new TaglessForString[Future] {}
   implicit val stringlanguage = new root.ForToString
 
   import org.validoc.utils.functions.AsyncForScalaFuture._
