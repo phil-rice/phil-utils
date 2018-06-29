@@ -11,7 +11,7 @@ trait LastEventAndData {
 
 case class LastEventAndDataForAccept(lastEvent: Event, rawMap: StringMap) extends LastEventAndData {val data = Map(lastEvent -> rawMap)}
 
-case class PipelineData[ED](key: Any, ed: ED, startState: CepState, data: Map[Event, StringMap], statePipeline: StatePipeline, lastEvent: Event, emitData: List[EmitData]) extends LastEventAndData {
+case class PipelineData(key: Any, ed: Any, startState: CepState, data: Map[Event, StringMap], statePipeline: StatePipeline, lastEvent: Event, emitData: List[EmitData]) extends LastEventAndData {
   def asStoredStateWithNewState = StoredState(key, ed, statePipeline.finalState(), data)
   override def toString: String =
     s""""PipelineData($key,$ed
@@ -25,7 +25,7 @@ case class PipelineData[ED](key: Any, ed: ED, startState: CepState, data: Map[Ev
 }
 object PipelineData {
   //TODO this can be made clearer.
-  def makeIfCan[ED: StringFieldGetter](thisEd: ED)(s: StoredState[ED]): Option[PipelineData[ED]] =
+  def makeIfCan[ED: StringFieldGetter](thisEd: ED)(s: StoredState): Option[PipelineData] =
     s.currentState.findStatePipeline(thisEd).map(_.asStartData(thisEd, s))
 
 }

@@ -65,7 +65,7 @@ abstract class AbstractCepProcessorSpec[ED](implicit cep: CEP[ED]) extends Utils
 
   //  it should "pass the state to the execute method of the pipeline, and update the current state to be the final state in the pipeline" in {
   //    setup { cepProcessor =>
-  //      val state = mock[StoredState[ED]]
+  //      val state = mock[StoredState]
   //      val finalMState = StoredState("someKey", makeEd(), terminate, Map())
   //      val pipeline = mock[StatePipeline]
   //      val tuple = StoreStateAndPipeline(pipeline, finalMState)
