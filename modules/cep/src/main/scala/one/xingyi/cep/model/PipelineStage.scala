@@ -15,6 +15,7 @@ object Emit extends CepAction {
   override def execute[ED](state: PipelineData[ED]): PipelineData[ED] = state.copy(emitData = state.emitData :+ EmitData(state.dataForLastEvent))
   override def toString: String = "emit"
 }
+
 object purge extends CepAction {
   override def execute[ED](state: PipelineData[ED]): PipelineData[ED] = state
   override def toString: String = "purge"

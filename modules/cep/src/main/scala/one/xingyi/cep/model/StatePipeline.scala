@@ -5,12 +5,13 @@ import one.xingyi.cep.{PipelineData, StoredState, StringFieldGetter, StringMap}
 import scala.annotation.tailrec
 
 object StatePipeline {
-  def startData[ED: StringFieldGetter](ed: ED)(pipeline: StatePipeline): StringMap = pipeline.event.makeMap(ed).getOrElse(Map())
 }
 case class StatePipeline(event: StartEvent, pipelineStages: List[PipelineStage], finalState: () => CepState) {
+  def startData[ED: StringFieldGetter](ed: ED): StringMap = event.makeMap(ed).getOrElse(Map())
 
   def asStartData[ED: StringFieldGetter](thisEd: ED, s: StoredState[ED]) =
-    PipelineData(s.key, thisEd, s.currentState, s.data + (event -> StatePipeline.startData(thisEd)(this)), this, event, List())
+    PipelineData(s.key, thisEd, s.currentState, s.data + (event -> startData(thisEd)), this, event, List())
+
   def execute[ED](startState: PipelineData[ED]): PipelineData[ED] = execute(startState, pipelineStages)
   @tailrec
   final private def execute[ED](state: PipelineData[ED], pipelineStages: List[PipelineStage]): PipelineData[ED] = pipelineStages match {

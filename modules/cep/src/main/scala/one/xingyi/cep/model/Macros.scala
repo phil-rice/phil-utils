@@ -33,14 +33,6 @@ object Macros {
       }
     }
   }
-//  def whereImpl(c: whitebox.Context)(value: c.Expr[Boolean]): c.Expr[WhereFn] = {
-//    import c.universe._
-//    val stringField = c.Expr[StringField](c.prefix.tree)
-//    c.Expr(
-//      q"""{values: StringMap => $value;}""")
-//  }
-
-
   def statePipelineImpl(c: blackbox.Context)(block: c.Expr[StatePipeline]): c.Expr[UserState] = {
     import c.universe._
     val preprocess = (c.Expr[Processor](c.prefix.tree))
