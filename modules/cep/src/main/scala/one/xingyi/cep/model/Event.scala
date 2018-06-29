@@ -34,7 +34,13 @@ case class Timeout(n: Duration) extends StartEvent {
   override def name: String = "timeout"
 }
 
-trait EventWithFields extends Event with  PublicIdMaker {
+case class TimeoutOccuredEvent(name: String, storedState: StoredState, statePipeline: StatePipeline) extends StartEvent {
+  override def makeMap[ED](ed: ED)(implicit stringFieldGetter: StringFieldGetter[ED]): Option[StringMap] = ???
+  override def accepts[ED: StringFieldGetter](lastEvent: ED): Boolean = ???
+  override def findDataForThisEvent(map: LastEventAndData): Option[StringMap] = ???
+}
+
+trait EventWithFields extends Event with PublicIdMaker {
   //TODO This  is dripping with anti pattern. Put simply needing this sucks. I think we can do this better with macros, but this works for now
 
 

@@ -12,7 +12,7 @@ trait LastEventAndData {
 case class LastEventAndDataForAccept(lastEvent: Event, rawMap: StringMap) extends LastEventAndData {val data = Map(lastEvent -> rawMap)}
 
 case class PipelineData(key: Any, ed: Any, startState: CepState, data: Map[Event, StringMap], statePipeline: StatePipeline, lastEvent: Event, emitData: List[EmitData]) extends LastEventAndData {
-  def asStoredStateWithNewState = StoredState(key, ed, statePipeline.finalState(), data)
+  def asStoredStateWithNewState (newId: Long)= StoredState(newId, key,  statePipeline.finalState(), data)
   override def toString: String =
     s""""PipelineData($key,$ed
        |startState: $startState

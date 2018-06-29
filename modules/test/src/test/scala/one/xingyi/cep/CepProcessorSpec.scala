@@ -29,7 +29,7 @@ abstract class AbstractCepProcessorSpec[ED](implicit cep: CEP[ED]) extends Utils
     setup { cepProcessor =>
       val ed = makeEd(pp2.keyby -> "someValue")
       val Some(state) = cepProcessor.findLastStateFromED(ed)
-      state shouldBe StoredState("someValue", ed, pp2.initial, Map())
+      state shouldBe StoredState(100, "someValue", pp2.initial, Map())
       cepProcessor.findLastStateFromED(ed).get should be theSameInstanceAs (state)
     }
   }
@@ -39,7 +39,7 @@ abstract class AbstractCepProcessorSpec[ED](implicit cep: CEP[ED]) extends Utils
   it should "return none if it cannot accept the pipeline because no event at the start of the pipelines match" in {
     val oldEd = makeEd(pp2.keyby -> "someValue")
     val ed = makeEd(pp2.keyby -> "someValue", falseKeyBy -> "other")
-    val state = StoredState("someValue", oldEd, pp2.test, Map())
+    val state = StoredState(1, "someValue", pp2.test, Map())
     setup { cepProcessor =>
       PipelineData.makeIfCan(ed)(state) shouldBe None
     }
@@ -49,13 +49,13 @@ abstract class AbstractCepProcessorSpec[ED](implicit cep: CEP[ED]) extends Utils
     val oldEd = makeEd(pp2.keyby -> "someValue")
     setup { cepProcessor =>
       val ed = makeEd(pp2.keyby -> "someValue", typeField -> "A", ipaddress -> "someIpAddresss", falseKeyBy -> "shouldNotBeInclude")
-      val start = StoredState("someValue", oldEd, pp2.test, Map())
+      val start = StoredState(1, "someValue", pp2.test, Map())
       val expectedData = Map[Event, StringMap](pp2.ie1 -> Map("type" -> "A", "customerId" -> "someValue", "ipaddress" -> "someIpAddresss"))
       PipelineData.makeIfCan(ed)(start) shouldBe Some(PipelineData("someValue", ed, pp2.test, expectedData, pp2.test.list(0), pp2.ie1, List()))
     }
     setup { cepProcessor =>
       val ed = makeEd(pp2.keyby -> "someValue", typeField -> "B", ipaddress -> "someIpAddresss", falseKeyBy -> "shouldNotBeInclude")
-      val start = StoredState("someValue", oldEd, pp2.test, Map())
+      val start = StoredState(1, "someValue", pp2.test, Map())
       val expectedData = Map[Event, StringMap](pp2.ie2 -> Map("type" -> "B", "customerId" -> "someValue", "ipaddress" -> "someIpAddresss"))
       PipelineData.makeIfCan(ed)(start) shouldBe Some(PipelineData("someValue", ed, pp2.test, expectedData, pp2.test.list(1), pp2.ie2, List()))
     }

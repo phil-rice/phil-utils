@@ -4,6 +4,7 @@ import java.io.ByteArrayOutputStream
 import one.xingyi.cep.model._
 import one.xingyi.core.UtilsSpec
 import one.xingyi.core.builder.Aggregator
+import one.xingyi.core.misc.LongIdMaker
 
 import scala.concurrent.duration._
 import scala.language.{postfixOps, reflectiveCalls}
@@ -13,6 +14,7 @@ trait CepFixture[ED] {
   case class LastEventAndDataForTest(lastEvent: Event, data: Map[Event, StringMap]) extends LastEventAndData
 
   def setup(fn: CEPProcessor[ED] => Unit)(implicit cep: CEP[ED]): Unit = {
+    implicit val longIdMaker = LongIdMaker.testIdMake(100)
     fn(new CEPProcessor[ED](be2, pp2))
   }
   val fraudtestbusinesseventstopic = Topic("fraudtestbusinesseventstopic", "1.0.0")
