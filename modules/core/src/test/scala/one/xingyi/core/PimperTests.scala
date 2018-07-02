@@ -132,7 +132,7 @@ class PimperTests extends UtilsSpec with FunctionFixture {
   }
 
   it should "compose f: A=>Seq[B] with g: B => M[C] using f ~+~> g giving A => M[Seq[(B, C)]]" in {
-    (fn(1, Seq(2, 3, 4)) ~+>(x => Future.successful(x * 2))).apply(1).await shouldBe List((2,4), (3,6), (4,8))
+    (fn(1, Seq(2, 3, 4)) ~*>(x => Future.successful(x * 2))).apply(1).await shouldBe List((2,4), (3,6), (4,8))
   }
 
 

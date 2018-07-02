@@ -60,7 +60,7 @@ trait FunctionLanguage {
     def ~>[Res2](fn2: Res => Res2): (Req) => Seq[Res2] = { res: Req => fn(res).map(fn2) }
 
     def ~~>[M[_], Res2](fn2: Res => M[Res2])(implicit monad: Monad[M]): Req => M[Seq[Res2]] = { req: Req => monad.flattenM(fn(req).map(fn2)) }
-    def ~+>[M[_], Res2](fn2: Res => M[Res2])(implicit monad: Monad[M]): Req => M[Seq[(Res, Res2)]] = { req: Req => monad.flattenM(fn(req).map(r => monad.map[Res2, (Res, Res2)](fn2(r), res2 => (r, res2)))) }
+    def ~*>[M[_], Res2](fn2: Res => M[Res2])(implicit monad: Monad[M]): Req => M[Seq[(Res, Res2)]] = { req: Req => monad.flattenM(fn(req).map(r => monad.map[Res2, (Res, Res2)](fn2(r), res2 => (r, res2)))) }
   }
 
 

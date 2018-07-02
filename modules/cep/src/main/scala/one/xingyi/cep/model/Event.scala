@@ -25,6 +25,7 @@ trait StartEvent extends Event {
   def accepts[ED: StringFieldGetter](lastEvent: ED): Boolean
   def >>(s: => CepState): StatePipeline = StatePipeline(this, List(), () => s)
   def >>(p: PipelineStage) = StatePipeline(this, List(p), () => Terminate)
+  def makeTimeout(data: StoredState, pipeline: StatePipeline): Option[TOEvent]
 }
 
 case class Timeout(n: Duration) extends StartEvent {
@@ -32,11 +33,10 @@ case class Timeout(n: Duration) extends StartEvent {
   override def accepts[ED: StringFieldGetter](lastEvent: ED): Boolean = false
   override def makeMap[ED](ed: ED)(implicit stringFieldGetter: StringFieldGetter[ED]): Option[StringMap] = None
   override def name: String = "timeout"
+  override def makeTimeout(data: StoredState, pipeline: StatePipeline): Option[TOEvent] = Some(TOEvent(name, n, data, pipeline))
 }
 
-case class TimeoutOccuredEvent(name: String, storedState: StoredState, statePipeline: StatePipeline) extends StartEvent {
-  override def makeMap[ED](ed: ED)(implicit stringFieldGetter: StringFieldGetter[ED]): Option[StringMap] = ???
-  override def accepts[ED: StringFieldGetter](lastEvent: ED): Boolean = ???
+case class TOEvent(name: String, duration: Duration, data: StoredState, statePipeline: StatePipeline) extends Event {
   override def findDataForThisEvent(map: LastEventAndData): Option[StringMap] = ???
 }
 
@@ -67,4 +67,5 @@ abstract class TopicEvent(val name: String, val topic: Topic, val version: Strin
   var actualWhere: WhereFn = { _ => true }
   def where(fn: => Boolean) = actualWhere = _ => fn
   override def toString: String = s"TopicEvent($name,$version)"
+  override def makeTimeout(storedState: StoredState, statePipeline: StatePipeline): Option[TOEvent] = None
 }

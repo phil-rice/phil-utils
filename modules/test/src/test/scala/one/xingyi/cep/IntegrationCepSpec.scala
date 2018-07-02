@@ -1,6 +1,7 @@
 package one.xingyi.cep
 import one.xingyi.cep.model.EmitData
 import one.xingyi.core.UtilsSpec
+import org.mockito.Mockito
 
 import scala.language.reflectiveCalls
 
@@ -14,7 +15,7 @@ abstract class AbstractIntegrationCepSpec[ED: CEP] extends UtilsSpec with CepFix
   val edThree = makeEd("customerId" -> "someValue", "type" -> "C", "ipaddress" -> "someIpAddress3", "junk" -> "someJunk")
 
   it should "process the initial ED" in {
-    setup { cepProcessor =>
+    setup { (cepProcessor, timeoutProcessor, messageEmitter) =>
       cepProcessor.process(edInitial)
       val Some(StoredState(101, "someValue", pp2.ie1Recv, actualMap)) = cepProcessor.findLastStateFromED(edInitial)
       actualMap shouldBe Map(pp2.ie1 -> Map("customerId" -> "someValue", "type" -> "A", "ipaddress" -> "someIpAddress1"))
@@ -22,7 +23,7 @@ abstract class AbstractIntegrationCepSpec[ED: CEP] extends UtilsSpec with CepFix
   }
 
   it should "not process the initial ED a second time" in {
-    setup { cepProcessor =>
+    setup { (cepProcessor, timeoutProcessor, messageEmitter) =>
       cepProcessor.process(edInitial)
       cepProcessor.process(edInitial) shouldBe None
 
@@ -31,7 +32,7 @@ abstract class AbstractIntegrationCepSpec[ED: CEP] extends UtilsSpec with CepFix
     }
   }
   it should "not process the second ED initially" in {
-    setup { cepProcessor =>
+    setup { (cepProcessor, timeoutProcessor, messageEmitter) =>
       cepProcessor.process(edTwo)
       val Some(StoredState(100, "someValue", pp2.initial, actualMap)) = cepProcessor.findLastStateFromED(edInitial)
       actualMap shouldBe Map()
@@ -39,7 +40,7 @@ abstract class AbstractIntegrationCepSpec[ED: CEP] extends UtilsSpec with CepFix
   }
 
   it should "process the second ED after the first keeping the latest values" in {
-    setup { cepProcessor =>
+    setup { (cepProcessor, timeoutProcessor, messageEmitter) =>
       cepProcessor.process(edInitial)
       cepProcessor.process(edTwo)
       val Some(StoredState(102, "someValue", pp2.ie2Recv, actualMap)) = cepProcessor.findLastStateFromED(edInitial)
@@ -50,30 +51,25 @@ abstract class AbstractIntegrationCepSpec[ED: CEP] extends UtilsSpec with CepFix
     }
   }
   it should "Process the third ED which has a map in it" in {
-    setup { cepProcessor =>
+    setup { (cepProcessor, timeoutProcessor, messageEmitter) =>
       cepProcessor.process(edInitial)
       cepProcessor.process(edTwo)
-      val Some(PipelineData("someValue", actualEd, actualState, actualMap, actualPipeline, actualLastEvent, actualEmit)) = cepProcessor.process(edThree)
+      val Some((pipelineData, None)) = cepProcessor.process(edThree)
       //      actualState shouldBe terminate
-      actualEd shouldBe edThree
 
-      actualState shouldBe pp2.ie2Recv
       val expectedMap = Map("ipaddress" -> "someIpAddress1/someIpAddress2/someIpAddress3", "type" -> "A-B-C", "businessEventSubtype" -> "performance-test-data")
-      actualMap(pp2.map123) shouldBe expectedMap
-      actualPipeline shouldBe pp2.ie2Recv.list(0)
-      actualLastEvent shouldBe pp2.map123
-      actualMap shouldBe Map(
+      pipelineData.data shouldBe Map(
         pp2.ie1 -> Map("customerId" -> "someValue", "type" -> "A", "ipaddress" -> "someIpAddress1"),
         pp2.ie2 -> Map("customerId" -> "someValue", "type" -> "B", "ipaddress" -> "someIpAddress2"),
         pp2.ie3 -> Map("customerId" -> "someValue", "type" -> "C", "ipaddress" -> "someIpAddress3"),
         pp2.map123 -> expectedMap
       )
-      actualEmit shouldBe List(EmitData(expectedMap))
+      Mockito.verify(messageEmitter).apply(be2, EmitData(expectedMap))
     }
   }
 
   it should "remove the data from the trip map when terminate occurs, so we get a new session" in {
-    setup { cepProcessor =>
+    setup { (cepProcessor, timeoutProcessor, messageEmitter) =>
       cepProcessor.process(edInitial)
       cepProcessor.process(edTwo)
       cepProcessor.map.get("someValue").isDefined shouldBe true

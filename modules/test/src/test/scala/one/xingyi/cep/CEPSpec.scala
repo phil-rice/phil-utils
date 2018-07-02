@@ -5,17 +5,20 @@ import one.xingyi.cep.model._
 import one.xingyi.core.UtilsSpec
 import one.xingyi.core.builder.Aggregator
 import one.xingyi.core.misc.LongIdMaker
+import org.scalatest.mockito.MockitoSugar
 
 import scala.concurrent.duration._
 import scala.language.{postfixOps, reflectiveCalls}
 
 
-trait CepFixture[ED] {
+trait CepFixture[ED] extends MockitoSugar {
   case class LastEventAndDataForTest(lastEvent: Event, data: Map[Event, StringMap]) extends LastEventAndData
 
-  def setup(fn: CEPProcessor[ED] => Unit)(implicit cep: CEP[ED]): Unit = {
+  def setup(fn: (CEPProcessor[ED], TimeoutEventProcessor, MessageEmitter) => Unit)(implicit cep: CEP[ED]): Unit = {
     implicit val longIdMaker = LongIdMaker.testIdMake(100)
-    fn(new CEPProcessor[ED](be2, pp2))
+    implicit val timeoutEventProcessor = mock[TimeoutEventProcessor]
+    implicit val messageEmitter = mock[MessageEmitter]
+    fn(new CEPProcessor[ED](be2, pp2), timeoutEventProcessor, messageEmitter)
   }
   val fraudtestbusinesseventstopic = Topic("fraudtestbusinesseventstopic", "1.0.0")
   val fraudtestinputtopic = Topic("fraudtestinputtopic", "1.0.0")
@@ -131,10 +134,9 @@ abstract class AbstractCEPSpec[ED](implicit stringGetter: StringFieldGetter[ED])
   }
 }
 
-object CEPSpec {
+object CEPSpec extends MockitoSugar {
   implicit object CepForMapStringString extends CEP[Map[String, String]] {
     override def getString: StringFieldGetter[Map[String, String]] = stringField => ed => ed get stringField.name
-    override def sendMessage(topicEvent: TopicEvent, emitData: EmitData): Unit = println(s"Sending to ${topicEvent.name} $emitData")
   }
   def makeEd(tuples: (StringField, String)*): Map[String, String] = tuples.map { case (k, v) => (k.name, v) }.toMap
 }

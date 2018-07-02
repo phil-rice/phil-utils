@@ -1,5 +1,5 @@
 package one.xingyi.cep
-import one.xingyi.cep.model.{CepState, EmitData, Event, StatePipeline}
+import one.xingyi.cep.model._
 
 
 trait LastEventAndData {
@@ -12,7 +12,7 @@ trait LastEventAndData {
 case class LastEventAndDataForAccept(lastEvent: Event, rawMap: StringMap) extends LastEventAndData {val data = Map(lastEvent -> rawMap)}
 
 case class PipelineData(key: Any, ed: Any, startState: CepState, data: Map[Event, StringMap], statePipeline: StatePipeline, lastEvent: Event, emitData: List[EmitData]) extends LastEventAndData {
-  def asStoredStateWithNewState (newId: Long)= StoredState(newId, key,  statePipeline.finalState(), data)
+  def asStoredStateWithNewState(newId: Long) = StoredState(newId, key, statePipeline.finalState(), data)
   override def toString: String =
     s""""PipelineData($key,$ed
        |startState: $startState
@@ -27,5 +27,10 @@ object PipelineData {
   //TODO this can be made clearer.
   def makeIfCan[ED: StringFieldGetter](thisEd: ED)(s: StoredState): Option[PipelineData] =
     s.currentState.findStatePipeline(thisEd).map(_.asStartData(thisEd, s))
+
+  def makeFromTimeoutEvent(timeout: TOEvent) = {
+    import timeout._
+    PipelineData(data.key, Timeout, data.currentState, data.data, statePipeline, timeout, List())
+  }
 
 }

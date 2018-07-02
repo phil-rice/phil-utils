@@ -26,6 +26,6 @@ trait EnrichKleisli[M[_]] {
   private type Kleisli[Req, Res] = Req => M[Res]
 
   def enrichPrim[ReqP: ClassTag, ResP, ReqC, ResC, ResE: ClassTag](parentService: Kleisli[ReqP, ResP], childService: Kleisli[ReqC, ResC])(implicit findChildIds: HasChildren[ResP, ReqC], enricher: Enricher[ReqP, ResP, ReqC, ResC, ResE]): ReqP => M[ResE] =
-    parentService |=++> { reqP => resP => findChildIds ~+> childService |=> (seq => enricher(reqP, resP, seq)) }
+    parentService |=++> { reqP => resP => findChildIds ~*> childService |=> (seq => enricher(reqP, resP, seq)) }
 
 }

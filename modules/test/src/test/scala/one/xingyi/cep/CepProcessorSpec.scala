@@ -5,7 +5,6 @@ import one.xingyi.core.UtilsSpec
 import org.scalatest.mockito.MockitoSugar
 
 import scala.language.reflectiveCalls
-import org.mockito.Mockito._
 abstract class AbstractCepProcessorSpec[ED](implicit cep: CEP[ED]) extends UtilsSpec with CepFixture[ED] with MockitoSugar {
 
   def makeEd(tuples: (StringField, String)*): ED
@@ -19,14 +18,14 @@ abstract class AbstractCepProcessorSpec[ED](implicit cep: CEP[ED]) extends Utils
 
   behavior of "CepProcessor.findLastStateFromED"
   it should "return nothing when the keyBy isn't in the ED" in {
-    setup { cepProcessor =>
-      cepProcessor.findLastStateFromED(makeEd()) shouldBe None
+    setup { (cepProcessor, timeoutProcessor, messageEmitter) =>
+    cepProcessor.findLastStateFromED(makeEd()) shouldBe None
       cepProcessor.findLastStateFromED(makeEd(falseKeyBy -> "someValue")) shouldBe None
     }
   }
 
   it should "return a new miyamoto state when it's a new keyby, and return that the next time" in {
-    setup { cepProcessor =>
+    setup { (cepProcessor, timeoutProcessor, messageEmitter) =>
       val ed = makeEd(pp2.keyby -> "someValue")
       val Some(state) = cepProcessor.findLastStateFromED(ed)
       state shouldBe StoredState(100, "someValue", pp2.initial, Map())
@@ -40,20 +39,20 @@ abstract class AbstractCepProcessorSpec[ED](implicit cep: CEP[ED]) extends Utils
     val oldEd = makeEd(pp2.keyby -> "someValue")
     val ed = makeEd(pp2.keyby -> "someValue", falseKeyBy -> "other")
     val state = StoredState(1, "someValue", pp2.test, Map())
-    setup { cepProcessor =>
+    setup { (cepProcessor, timeoutProcessor, messageEmitter) =>
       PipelineData.makeIfCan(ed)(state) shouldBe None
     }
 
   }
   it should "replace the ed in the state, and find the first pipeline that would accept the ED in the current state " in {
     val oldEd = makeEd(pp2.keyby -> "someValue")
-    setup { cepProcessor =>
+    setup { (cepProcessor, timeoutProcessor, messageEmitter) =>
       val ed = makeEd(pp2.keyby -> "someValue", typeField -> "A", ipaddress -> "someIpAddresss", falseKeyBy -> "shouldNotBeInclude")
       val start = StoredState(1, "someValue", pp2.test, Map())
       val expectedData = Map[Event, StringMap](pp2.ie1 -> Map("type" -> "A", "customerId" -> "someValue", "ipaddress" -> "someIpAddresss"))
       PipelineData.makeIfCan(ed)(start) shouldBe Some(PipelineData("someValue", ed, pp2.test, expectedData, pp2.test.list(0), pp2.ie1, List()))
     }
-    setup { cepProcessor =>
+    setup { (cepProcessor, timeoutProcessor, messageEmitter) =>
       val ed = makeEd(pp2.keyby -> "someValue", typeField -> "B", ipaddress -> "someIpAddresss", falseKeyBy -> "shouldNotBeInclude")
       val start = StoredState(1, "someValue", pp2.test, Map())
       val expectedData = Map[Event, StringMap](pp2.ie2 -> Map("type" -> "B", "customerId" -> "someValue", "ipaddress" -> "someIpAddresss"))
