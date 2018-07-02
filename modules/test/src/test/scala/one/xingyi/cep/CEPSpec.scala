@@ -34,6 +34,7 @@ trait CepFixture[ED] extends MockitoSugar {
     val ie1 = new TopicEvent("ie1", fraudtestinputtopic) with CustomerAddressIpAddressAndType {
       where(`type`.value == "A")
     }
+//    case class SimpleStringField(event: Event, name: String)(implicit aggregator: Aggregator[StringField]) extends StringField
     val ie2 = new TopicEvent("ie2", fraudtestinputtopic) with CustomerAddressIpAddressAndType {
       where(`type`.value == "B")
     }
